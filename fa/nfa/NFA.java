@@ -130,8 +130,25 @@ public class NFA  implements FAInterface {
 
       public Set<NFAState> eClosure(NFAState s) {
          //todo
+          Set<NFAState> closure = new HashSet<>();
+          Stack<NFAState> stack = new Stack<>();
+          
+          //start Depth first search
+          stack.push(s);
 
-         throw new UnsupportedOperationException("Unimplemented method 'isClosure'");
+          while  (!stack.isEmpty()){
+            // pop current state from stack
+             NFAState currentState = stack.pop();
+
+             if (!closure.contains(currentState))
+            {
+                //add current state to closure
+                closure.add(currentState);
+
+            }
+          }
+
+         return closure;
       } 
       
       public boolean isDFA() {
