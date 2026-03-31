@@ -1,5 +1,6 @@
 package fa.nfa;
 
+import java.io.ObjectInputFilter.Config;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
@@ -7,6 +8,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+
+/**
+ *  Implementation of a Non-deterministic Finite Automaton (NFA).
+ * An NFA is defined by the 5-tuple (Q, Σ, δ, q0, F) where:
+ * - states is a finite set of states
+ * - sigma is a finite set of alphabet
+ * - δ is the transition function: Q × Σ  → P(Q)
+ *       (maps a state and input symbol, or epsilon, to a set of states)
+ * - startState is the start state
+ * - Finalstate is the set of final/accepting states
+ *
+ * allows transistions to mutiple states and  epsilon transitions. uses BFS to
+ * to traverse and keep track of the NFA states.
+ * 
+ * @ author Maria Gomez Baeza, Amy Lee, group 33, section 002
+ */
 
 public class NFA implements NFAInterface {
 
@@ -27,6 +44,7 @@ public class NFA implements NFAInterface {
         if (name == null) {
             return false;
         }
+        //rejects any duplicates. return false if  map already holds a state with this name
         if (states.containsKey(name)) {
             return false;
         }
@@ -37,6 +55,7 @@ public class NFA implements NFAInterface {
     @Override
     public boolean setFinal(String name) {
         NFAState s = states.get(name);
+       
         if (s == null) {
             return false;
         }
@@ -65,27 +84,32 @@ public class NFA implements NFAInterface {
 
     @Override
     public boolean accepts(String s) {
+        
         if (startState == null) {
             return false;
         }
         if (s == null) {
             s = "";
         }
-
+        // Compute the epsilon closure of start state
         Set<NFAState> startClosure = eClosure(startState);
+
+        // the input is empty, the empty string is accepted immediately
         if (containsFinal(startClosure) && s.isEmpty()) {
             return true;
         }
 
         // BFS over (state-subset, input-index) configurations.
         Queue<Config> queue = new ArrayDeque<>();
-        Set<ConfigKey> visited = new HashSet<>();
+        Set<ConfigKey> visited = new HashSet<>(); //prevents visiting the same pair
         ConfigKey startKey = new ConfigKey(0, startClosure);
         queue.add(new Config(startClosure, 0));
         visited.add(startKey);
 
         while (!queue.isEmpty()) {
             Config cur = queue.remove();
+
+            // All input has been consumed — check if any active state is accepting
             if (cur.index == s.length()) {
                 if (containsFinal(cur.states)) {
                     return true;
@@ -99,12 +123,13 @@ public class NFA implements NFAInterface {
                 continue;
             }
 
+            // Compute all states reachable from current states on symbol ch
             Set<NFAState> move = new HashSet<>();
             for (NFAState st : cur.states) {
-                move.addAll(getToState(st, ch));
+                move.addAll(getToState(st, ch)); //adds transiston for each active state
             }
             Set<NFAState> nextStates = epsilonClosureOfSet(move);
-
+            
             ConfigKey nextKey = new ConfigKey(cur.index + 1, nextStates);
             if (visited.add(nextKey)) {
                 queue.add(new Config(nextStates, cur.index + 1));
@@ -160,6 +185,7 @@ public class NFA implements NFAInterface {
 
         while (!stack.isEmpty()) {
             NFAState current = stack.pop();
+            //skip any states that has been visited 
             if (!visited.add(current)) {
                 continue;
             }
@@ -233,13 +259,13 @@ public class NFA implements NFAInterface {
         if (from == null) {
             return false;
         }
-
+        // Validate all destination state names before adding any transitions
         for (String toName : toStates) {
             if (!states.containsKey(toName)) {
                 return false;
             }
         }
-
+        // Add transition from source to all target states
         for (String toName : toStates) {
             from.addTransition(onSymb, states.get(toName));
         }
@@ -262,6 +288,13 @@ public class NFA implements NFAInterface {
         return true;
     }
 
+
+    /**
+     * helper method that  checks if a set contains any final accepting state
+     * 
+     *  @param subset the set of NFAState objects to check
+     * @return true if at least one state in the set is final; false otherwise
+     */
     private boolean containsFinal(Set<NFAState> subset) {
         for (NFAState st : subset) {
             if (finalStates.contains(st)) {
@@ -271,10 +304,18 @@ public class NFA implements NFAInterface {
         return false;
     }
 
+    /**
+     * Computes the epsilon closure of a set of states.
+     * Returns an empty set for a null or empty input.
+     *
+     * @param subset  - the set of NFAState objects to check
+     * @return true if at least one state in the set is final; false otherwise
+     */
     private Set<NFAState> epsilonClosureOfSet(Set<NFAState> subset) {
         if (subset == null || subset.isEmpty()) {
             return Collections.emptySet();
         }
+        // iterates through each state in the subset
         Set<NFAState> closure = new HashSet<>();
         for (NFAState st : subset) {
             closure.addAll(eClosure(st));
@@ -282,6 +323,12 @@ public class NFA implements NFAInterface {
         return closure;
     }
 
+    /**
+     * a helper method that represents a BFS  during NFA traversal. 
+     * Contains the the set of  active NFA states and the 
+     *  index of the input string being processed.
+     *  index is how many characters of the input have been consumed so far
+     */
     private static final class Config {
         private final Set<NFAState> states;
         private final int index;
@@ -291,10 +338,14 @@ public class NFA implements NFAInterface {
             this.index = index;
         }
     }
-
+    /**
+     *  a key used for tracking visited states in BFS to avoid any revisiting
+     * based on the current input index and the set of active states
+     * 
+     */
     private static final class ConfigKey {
         private final int index;
-        private final Set<NFAState> states;
+        private final Set<NFAState> states; //active states at the indext
 
         private ConfigKey(int index, Set<NFAState> states) {
             this.index = index;
@@ -302,6 +353,14 @@ public class NFA implements NFAInterface {
             this.states = Collections.unmodifiableSet(new HashSet<>(states));
         }
 
+        /**
+         * compares the ConfigKey with another aobject for equality
+         * they are equal if  both the input index and the  set of active states are identical
+         * used to track visited states in BFS to avoid doing it twice
+         * 
+         * @param obj the object to compare with this ConfigKey
+         *  @return true if the given object is equal to this ConfigKey, false otherwise
+         */
         @Override
         public boolean equals(Object obj) {
             if (this == obj) {
@@ -314,6 +373,11 @@ public class NFA implements NFAInterface {
             return index == other.index && states.equals(other.states);
         }
 
+        /**
+         * returns a hash  value for the ConfigKey
+         *  Combines the input index and the hash code of the active state set.
+         * used to make sure ConfigKey can be safetly used HashSet and HashMap
+         */
         @Override
         public int hashCode() {
             return 31 * index + states.hashCode();
