@@ -73,13 +73,7 @@ nfa1 <test> done
 
 ## DISCUSSION
  
- Discuss the issues you encountered during programming (development)
- and testing. What problems did you have? What did you have to research
- and learn on your own? What kinds of errors did you get? How did you 
- fix them?
- 
- What parts of the project did you find challenging? Is there anything
- that finally "clicked" for you in the process of working on this project?
+During development, the biggest issue was translating the NFA “multiple copies” idea into concrete Java data structures and algorithms. I initially had the method skeletons compiling, but most tests failed because the real challenge is correctly simulating nondeterminism while also merging identical copies. We ran into logical erros like, treating 'e' as if it could be consumed from the input string, forgetting to apply ε-closure at the start or after reading each symbol, which caused acceptance to be wrong, and accidentally counting duplicates as extra copies. The most challenging parts were implementinge closure correctly using DFS with a stack and a loop, while avoiding infinite loops in cyclic ε-transitions and accepts and maxCopies, because it was easy to lose track of when to apply closure and how to correctly track the evolving set of states. It finally clicked when I treated NFA simulation as repeatedly applying epsilon-closure before and after each move. Once I followed that pattern, my results matched JUnit, and the remaining issues were just small edge cases.
  
  
 ## TESTING
