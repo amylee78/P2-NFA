@@ -19,8 +19,9 @@ import java.util.Set;
  * - startState is the start state
  * - Finalstate is the set of final/accepting states
  *
- * allows transistions to mutiple states and  epsilon transitions. uses BFS to
- * to traverse and keep track of the NFA states.
+ * allows transistions to mutiple states and  epsilon transitions. 
+ * Uses BFS to go through the NFA step by step for an input string 
+ * and DFS to find all states reachable via ε.
  * 
  * @ author Maria Gomez Baeza, Amy Lee, group 33, section 002
  */
@@ -85,6 +86,7 @@ public class NFA implements NFAInterface {
     @Override
     public boolean accepts(String s) {
         
+        //reject if there is no start state.
         if (startState == null) {
             return false;
         }
@@ -183,6 +185,7 @@ public class NFA implements NFAInterface {
         ArrayDeque<NFAState> stack = new ArrayDeque<>();
         stack.push(s);
 
+        //Loop through configurations until there are no more configurations left to explore.
         while (!stack.isEmpty()) {
             NFAState current = stack.pop();
             //skip any states that has been visited 
@@ -211,6 +214,7 @@ public class NFA implements NFAInterface {
         Set<NFAState> startClosure = eClosure(startState);
         int max = startClosure.size();
 
+        //Uses BFS to explore all possible sets of active states at each step of the input.
         Queue<Config> queue = new ArrayDeque<>();
         Set<ConfigKey> visited = new HashSet<>();
         ConfigKey startKey = new ConfigKey(0, startClosure);
@@ -224,6 +228,7 @@ public class NFA implements NFAInterface {
             }
 
             char ch = s.charAt(cur.index);
+            
             if (ch == 'e' || !sigma.contains(ch)) {
                 continue;
             }
@@ -233,15 +238,17 @@ public class NFA implements NFAInterface {
                 move.addAll(getToState(st, ch));
             }
             Set<NFAState> nextStates = epsilonClosureOfSet(move);
-            max = Math.max(max, nextStates.size());
+            
+            max = Math.max(max, nextStates.size()); //update if umber of active states in nextStates is larger than the current maximum
 
+            //Adds new config if unvisted
             ConfigKey nextKey = new ConfigKey(cur.index + 1, nextStates);
             if (visited.add(nextKey)) {
                 queue.add(new Config(nextStates, cur.index + 1));
             }
         }
 
-        return max;
+        return max; //return results
     }
 
     @Override

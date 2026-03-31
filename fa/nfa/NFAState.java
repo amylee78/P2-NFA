@@ -30,7 +30,6 @@ public class NFAState extends State {
     /**
      * Adds a transition from this state to another state on a given symbol.
      * 
-     * 
      * @param symbol the input symbol for the transition 
      * @param toState the target state
      */
